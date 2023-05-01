@@ -17,8 +17,8 @@ os.environ[
 # pip install streamlit langchain openai wikipedia chromadb tiktoken
 
 # App framework
-st.title("😃 langChain")
-prompt = st.text_input("Plug your prompt here:")
+st.title("🎥 Youtube Script Maker")
+prompt = st.text_input("What do you want the video to be about?")
 
 # Prompt templates
 title_template = PromptTemplate(
@@ -27,7 +27,11 @@ title_template = PromptTemplate(
 
 script_template = PromptTemplate(
     input_variables=["title", "wikipedia_research"],
-    template="write me a youtube video script based on this title. Title: {title} while leveraging this wikipedia research: {wikipedia_research}",
+    template="write me a youtube video script based on this title. Title: {title}.  You can leverage this wikipedia research: {wikipedia_research}, as long as your answer has the format of a script",
+)
+director_template = PromptTemplate(
+    input_variables=["title", "director"],
+    template="Add a very short paragraph explaining why {director} is perfect for the presenter role for the video titled {title}",
 )
 # Memory
 title_memory = ConversationBufferMemory(input_key="topic", memory_key="chat_history")
@@ -48,31 +52,25 @@ script_chain = LLMChain(
     output_key="script",
     memory=script_memory,
 )
-""" SEQUENTIAL CHAIN
-sequential_chain = SequentialChain(
-    chains=[title_chain, script_chain],
-    input_variables=["topic"],
-    output_variables=["title", "script"],
+director_chain = LLMChain(
+    llm=llm,
+    prompt=director_template,
     verbose=False,
+    output_key="director_script",
 )
-"""
 wiki = WikipediaAPIWrapper()
 # show stuff if there is a prompt
 if prompt:
-    """SEQUENTIAL CHAIN
-    response = sequential_chain(
-        {"topic": prompt}
-    )
-    # With normal sequential chains you need to pass the inputs as a dictionary and not use "run"
-    """
+
     title = title_chain.run(prompt)
     wiki_research = wiki.run(prompt)
     script = script_chain.run(title=title, wikipedia_research=wiki_research)
+    director = director_chain.run(title=title, director="Enrique")
 
     st.subheader(title)
     # st.write(response["title"])
     st.write(script)
-
+    st.write(director)
     with st.expander("Title History"):
         st.info(title_memory.buffer)
 
